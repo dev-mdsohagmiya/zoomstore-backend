@@ -137,6 +137,8 @@ Body:
 - password: string (required)
 - photo: file (optional)
 - role: string (optional, default: 'user')
+
+Response: Returns user data with access and refresh tokens (auto-login)
 ```
 
 #### Login User
@@ -206,6 +208,8 @@ Body:
 - email: string (required)
 - password: string (required)
 - photo: file (optional)
+
+Response: Returns admin data with access and refresh tokens (auto-login)
 ```
 
 ### Category Endpoints

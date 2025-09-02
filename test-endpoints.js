@@ -57,10 +57,19 @@ async function apiCall(endpoint, method = "GET", data = null, token = null) {
 
 // Test functions
 async function testUserRegistration() {
-  console.log("\n🧪 Testing User Registration...");
+  console.log("\n🧪 Testing User Registration (with auto-login)...");
   const result = await apiCall("/auth/register", "POST", testUser);
   console.log("Status:", result.status);
   console.log("Response:", result.data);
+
+  if (result.data && result.data.data && result.data.data.accessToken) {
+    console.log("✅ User registered and auto-logged in successfully!");
+    console.log(
+      "Access Token:",
+      result.data.data.accessToken.substring(0, 20) + "..."
+    );
+  }
+
   return result;
 }
 

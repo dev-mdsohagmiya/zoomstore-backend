@@ -24,7 +24,11 @@ const generateAccessAndRefreshToken = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role } = req.body || {};
+
+  if (!name || !email || !password) {
+    throw new ApiError(400, "Name, email and password are required");
+  }
 
   if ([name, email, password].some((field) => field?.trim() === "")) {
     throw new ApiError(400, "Name, email and password are required");
@@ -61,9 +65,34 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong when registering the user");
   }
 
+  // Auto-login after registration
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    user._id
+  );
+  const loggedUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
   return res
     .status(201)
-    .json(new ApiResponse(200, createdUser, "User registered successfully"));
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedUser,
+          accessToken,
+          refreshToken,
+        },
+        "User registered and logged in successfully"
+      )
+    );
 });
 
 const loginUserController = asyncHandler(async (req, res, next) => {
@@ -188,7 +217,7 @@ const refreshAccessToken = asyncHandler(async (req, res, next) => {
 });
 
 const updateUserProfile = asyncHandler(async (req, res) => {
-  const { name, email } = req.body;
+  const { name, email } = req.body || {};
   const userId = req.user._id;
 
   if (!name || !email) {
@@ -277,7 +306,7 @@ const deleteUser = asyncHandler(async (req, res) => {
 });
 
 const createAdmin = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password } = req.body || {};
 
   if (!name || !email || !password) {
     throw new ApiError(400, "Name, email and password are required");
@@ -309,9 +338,34 @@ const createAdmin = asyncHandler(async (req, res) => {
     "-password -refreshToken"
   );
 
+  // Auto-login after admin creation
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    admin._id
+  );
+  const loggedAdmin = await User.findById(admin._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
   return res
     .status(201)
-    .json(new ApiResponse(200, createdAdmin, "Admin created successfully"));
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedAdmin,
+          accessToken,
+          refreshToken,
+        },
+        "Admin created and logged in successfully"
+      )
+    );
 });
 
 export {
