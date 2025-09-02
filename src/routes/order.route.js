@@ -1,0 +1,25 @@
+import { Router } from "express";
+import {
+  createOrder,
+  getMyOrders,
+  getAllOrders,
+  getOrderById,
+  updateOrderStatus,
+  getOrderStatus,
+} from "../controllers/order.controller.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyAdmin } from "../middlewares/admin.middleware.js";
+
+const orderRouter = Router();
+
+// User routes
+orderRouter.route("/").post(verifyJWT, createOrder);
+orderRouter.route("/myorders").get(verifyJWT, getMyOrders);
+orderRouter.route("/:id").get(verifyJWT, getOrderById);
+orderRouter.route("/status/:id").get(verifyJWT, getOrderStatus);
+
+// Admin routes
+orderRouter.route("/").get(verifyJWT, verifyAdmin, getAllOrders);
+orderRouter.route("/status/:id").put(verifyJWT, verifyAdmin, updateOrderStatus);
+
+export default orderRouter;
