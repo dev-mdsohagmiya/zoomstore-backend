@@ -524,16 +524,41 @@ src/
 
 ## 🚨 Error Handling
 
-The API uses consistent error responses:
+The API uses consistent JSON error responses with detailed information:
 
 ```json
 {
   "statusCode": 400,
-  "data": null,
+  "success": false,
   "message": "Error message",
-  "success": false
+  "data": null,
+  "errors": [],
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/api/v1/auth/register",
+  "stack": "Error stack trace (development only)"
 }
 ```
+
+### Error Response Fields:
+- `statusCode`: HTTP status code
+- `success`: Always `false` for errors
+- `message`: Human-readable error message
+- `data`: Always `null` for errors
+- `errors`: Array of detailed error objects (for validation errors)
+- `timestamp`: ISO timestamp when error occurred
+- `path`: API endpoint where error occurred
+- `stack`: Error stack trace (only in development mode)
+
+### Common Error Types:
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `409` - Conflict (duplicate data)
+- `422` - Unprocessable Entity (validation errors)
+- `429` - Too Many Requests
+- `500` - Internal Server Error
+- `503` - Service Unavailable
 
 ## 📊 Response Format
 
