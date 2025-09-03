@@ -3,7 +3,10 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 
 // Import error handling middleware
-import { errorHandler, notFoundHandler } from "./middlewares/error.middleware.js";
+import {
+  errorHandler,
+  notFoundHandler,
+} from "./middlewares/error.middleware.js";
 
 const app = express();
 

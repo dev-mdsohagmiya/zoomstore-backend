@@ -540,6 +540,7 @@ The API uses consistent JSON error responses with detailed information:
 ```
 
 ### Error Response Fields:
+
 - `statusCode`: HTTP status code
 - `success`: Always `false` for errors
 - `message`: Human-readable error message
@@ -550,6 +551,7 @@ The API uses consistent JSON error responses with detailed information:
 - `stack`: Error stack trace (only in development mode)
 
 ### Common Error Types:
+
 - `400` - Bad Request
 - `401` - Unauthorized
 - `403` - Forbidden

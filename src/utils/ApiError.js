@@ -13,7 +13,7 @@ class ApiError extends Error {
     this.errors = errors;
     this.timestamp = new Date().toISOString();
     this.path = null; // Will be set by error handler
-    
+
     if (stack) {
       this.stack = stack;
     } else {
@@ -31,7 +31,7 @@ class ApiError extends Error {
       errors: this.errors,
       timestamp: this.timestamp,
       path: this.path,
-      ...(process.env.NODE_ENV === 'development' && { stack: this.stack })
+      ...(process.env.NODE_ENV === "development" && { stack: this.stack }),
     };
   }
 
