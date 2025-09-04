@@ -29,9 +29,6 @@ const userSchema = new Schema(
       type: String,
       required: [true, "Password is required"],
     },
-    refreshToken: {
-      type: String,
-    },
   },
   {
     timestamps: true,
@@ -42,6 +39,22 @@ userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
   this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+// Prevent super admin role assignment through direct model operations
+userSchema.pre("save", function (next) {
+  // Allow super admin creation only if it's coming from environment variables
+  if (this.role === "superadmin" && this.isNew) {
+    const isFromEnv = process.env.SUPER_ADMIN_EMAIL === this.email;
+    if (!isFromEnv) {
+      return next(
+        new Error(
+          "Super admin role can only be assigned through environment variables"
+        )
+      );
+    }
+  }
   next();
 });
 
@@ -60,17 +73,6 @@ userSchema.methods.generateAccessToken = function () {
     process.env.ACCESS_TOKEN_SECRET,
     {
       expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-    }
-  );
-};
-userSchema.methods.generateRefreshToken = function () {
-  return jwt.sign(
-    {
-      _id: this._id,
-    },
-    process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
     }
   );
 };

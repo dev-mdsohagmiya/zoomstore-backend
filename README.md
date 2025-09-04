@@ -11,13 +11,13 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
   - [Authentication Endpoints](#authentication-endpoints)
     - [Register User](#register-user)
     - [Login User](#login-user)
-    - [Refresh Token](#refresh-token)
     - [Logout User](#logout-user)
   - [User Management Endpoints](#user-management-endpoints)
     - [Update Profile](#update-profile)
     - [Get All Users (Admin)](#get-all-users-admin)
     - [Delete User (Admin)](#delete-user-admin)
     - [Create Admin (Super Admin)](#create-admin-super-admin)
+    - [Setup Super Admin](#setup-super-admin)
   - [Category Endpoints](#category-endpoints)
     - [Get All Categories](#get-all-categories)
     - [Create Category (Admin)](#create-category-admin)
@@ -55,7 +55,7 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
 ## 🚀 Features
 
 - **Role-based Authentication**: User, Admin, and Super Admin roles
-- **JWT Authentication**: Secure token-based authentication with refresh tokens
+- **JWT Authentication**: Secure token-based authentication
 - **Product Management**: Admin-only product CRUD operations
 - **Category Management**: Admin-only category management
 - **Order Management**: Complete order lifecycle with status tracking
@@ -94,9 +94,11 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
 
    # JWT Secrets
    ACCESS_TOKEN_SECRET=your_access_token_secret
-   REFRESH_TOKEN_SECRET=your_refresh_token_secret
-   ACCESS_TOKEN_EXPIRY=1h
-   REFRESH_TOKEN_EXPIRY=7d
+   ACCESS_TOKEN_EXPIRY=1d
+
+   # Super Admin Credentials
+   SUPER_ADMIN_EMAIL=admin@example.com
+   SUPER_ADMIN_PASSWORD=your_super_admin_password
 
    # Cloudinary
    CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -110,9 +112,56 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
    PORT=8000
    ```
 
-4. **Start the server**
+4. **Setup Super Admin** (Optional)
+
+   You can create the super admin user in two ways:
+
+   **Option A: Using the setup script**
+
+   ```bash
+   node create-super-admin.js
+   ```
+
+   **Option B: Using the API endpoint**
+
+   ```bash
+   curl -X POST http://localhost:8000/api/v1/super-admin/setup
+   ```
+
+   **Option C: Test login functionality**
+
+   ```bash
+   node test/test-login.js
+   ```
+
+   **Option D: Test super admin validation**
+
+   ```bash
+   node test/test-super-admin-validation.js
+   ```
+
+   **Option E: Test direct model validation**
+
+   ```bash
+   node test/test-validation-direct.js
+   ```
+
+   **Option F: Run all tests**
+
+   ```bash
+   node test/run-all-tests.js
+   ```
+
+5. **Start the server**
+
    ```bash
    npm run dev
+   ```
+
+   **Alternative: Start server for testing**
+
+   ```bash
+   node test/start-server.js
    ```
 
 ## 📚 API Documentation
@@ -138,7 +187,7 @@ Body:
 - photo: file (optional)
 - role: string (optional, default: 'user')
 
-Response: Returns user data with access and refresh tokens (auto-login)
+Response: Returns user data with access token (auto-login)
 ```
 
 #### Login User
@@ -154,11 +203,11 @@ Body:
 }
 ```
 
-#### Refresh Token
+Response: Returns user data with access token and role information
 
-```http
-POST /auth/refresh-token
-```
+- For regular users: "User logged in successfully"
+- For admins: "Admin logged in successfully"
+- For super admins: "Super Admin logged in successfully"
 
 #### Logout User
 
@@ -209,8 +258,22 @@ Body:
 - password: string (required)
 - photo: file (optional)
 
-Response: Returns admin data with access and refresh tokens (auto-login)
+Response: Returns admin data with access token (auto-login)
 ```
+
+#### Setup Super Admin
+
+```http
+POST /super-admin/setup
+```
+
+Creates super admin user from environment variables `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD`.
+
+**Security Note**: Super admin role can ONLY be created through environment variables. Attempting to create super admin through registration or admin creation endpoints will result in a 403 Forbidden error.
+
+Response: Returns super admin data
+
+````
 
 ### Category Endpoints
 
@@ -218,7 +281,7 @@ Response: Returns admin data with access and refresh tokens (auto-login)
 
 ```http
 GET /categories
-```
+````
 
 #### Create Category (Admin)
 
@@ -575,15 +638,49 @@ All successful responses follow this format:
 }
 ```
 
+## 🧪 Testing
+
+The project includes comprehensive test suites located in the `test/` directory:
+
+- **Direct Model Tests**: Test User model validation without server
+- **API Tests**: Test HTTP endpoints with server running
+- **Integration Tests**: Test complete request/response cycles
+
+### Quick Test Commands
+
+```bash
+# Run all tests
+node test/run-all-tests.js
+
+# Test super admin validation
+node test/test-super-admin-validation.js
+
+# Test login functionality
+node test/test-login.js
+
+# Test direct model validation
+node test/test-validation-direct.js
+```
+
+See `test/README.md` for detailed testing information.
+
+## 🔒 Security Features
+
+- **Super Admin Protection**: Super admin role can only be created from environment variables
+- **Role-based Access Control**: Different permission levels for users, admins, and super admins
+- **JWT Authentication**: Secure token-based authentication with 1-day expiry
+- **Input Validation**: Comprehensive validation for all endpoints
+- **Password Hashing**: Secure bcrypt password hashing
+
 ## 🔧 Environment Variables
 
 Make sure to set up all required environment variables in your `.env` file:
 
 - `MONGODB_URI`: MongoDB connection string
 - `ACCESS_TOKEN_SECRET`: JWT access token secret
-- `REFRESH_TOKEN_SECRET`: JWT refresh token secret
 - `ACCESS_TOKEN_EXPIRY`: Access token expiry time
-- `REFRESH_TOKEN_EXPIRY`: Refresh token expiry time
+- `SUPER_ADMIN_EMAIL`: Super admin email address
+- `SUPER_ADMIN_PASSWORD`: Super admin password
 - `CLOUDINARY_CLOUD_NAME`: Cloudinary cloud name
 - `CLOUDINARY_API_KEY`: Cloudinary API key
 - `CLOUDINARY_API_SECRET`: Cloudinary API secret

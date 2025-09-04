@@ -2,12 +2,12 @@ import { Router } from "express";
 import {
   loginUserController,
   logoutUserController,
-  refreshAccessToken,
   registerUser,
   updateUserProfile,
   getAllUsers,
   deleteUser,
   createAdmin,
+  createSuperAdminFromEnv,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -30,7 +30,6 @@ userRouter.route("/auth/register").post(
 );
 
 userRouter.route("/auth/login").post(loginUserController);
-userRouter.route("/auth/refresh-token").post(refreshAccessToken);
 
 // Protected routes
 userRouter.route("/auth/logout").post(verifyJWT, logoutUserController);
@@ -61,5 +60,8 @@ userRouter.route("/admin/create").post(
   ]),
   createAdmin
 );
+
+// Create super admin from environment variables (no auth required for initial setup)
+userRouter.route("/super-admin/setup").post(createSuperAdminFromEnv);
 
 export default userRouter;
