@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Category } from "../models/category.model.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const getAllCategories = asyncHandler(async (req, res) => {
   const categories = await Category.find({}).sort({ createdAt: -1 });
@@ -25,9 +26,19 @@ const createCategory = asyncHandler(async (req, res) => {
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "");
 
+  let image = "";
+  if (req?.files?.image && req.files.image.length > 0) {
+    const imageLocalPath = req.files.image[0].path;
+    const uploadedImage = await uploadOnCloudinary(imageLocalPath);
+    if (uploadedImage) {
+      image = uploadedImage.url;
+    }
+  }
+
   const category = await Category.create({
     name,
     slug,
+    image,
   });
 
   return res
@@ -48,11 +59,23 @@ const updateCategory = asyncHandler(async (req, res) => {
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "");
 
-  const category = await Category.findByIdAndUpdate(
-    id,
-    { name, slug },
-    { new: true }
-  );
+  let image = "";
+  if (req?.files?.image && req.files.image.length > 0) {
+    const imageLocalPath = req.files.image[0].path;
+    const uploadedImage = await uploadOnCloudinary(imageLocalPath);
+    if (uploadedImage) {
+      image = uploadedImage.url;
+    }
+  }
+
+  const updateData = { name, slug };
+  if (image) {
+    updateData.image = image;
+  }
+
+  const category = await Category.findByIdAndUpdate(id, updateData, {
+    new: true,
+  });
 
   if (!category) {
     throw new ApiError(404, "Category not found");

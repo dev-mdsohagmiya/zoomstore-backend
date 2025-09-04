@@ -20,7 +20,7 @@ const generateAccessToken = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body || {};
+  const { name, email, password, role, address } = req.body || {};
 
   if (!name || !email || !password) {
     throw new ApiError(400, "Name, email and password are required");
@@ -59,6 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password,
     photo,
     role: role || "user",
+    address: address || {},
   });
 
   const createdUser = await User.findById(user._id).select("-password");
@@ -153,7 +154,7 @@ const logoutUserController = asyncHandler(async (req, res, next) => {
 });
 
 const updateUserProfile = asyncHandler(async (req, res) => {
-  const { name, email } = req.body || {};
+  const { name, email, address } = req.body || {};
   const userId = req.user._id;
 
   if (!name || !email) {
@@ -175,6 +176,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       name,
       email,
       photo,
+      ...(address && { address }),
     },
     { new: true, select: "-password" }
   );
@@ -242,7 +244,7 @@ const deleteUser = asyncHandler(async (req, res) => {
 });
 
 const createAdmin = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body || {};
+  const { name, email, password, role, address } = req.body || {};
 
   if (!name || !email || !password) {
     throw new ApiError(400, "Name, email and password are required");
@@ -276,6 +278,7 @@ const createAdmin = asyncHandler(async (req, res) => {
     password,
     photo,
     role: "admin",
+    address: address || {},
   });
 
   const createdAdmin = await User.findById(admin._id).select("-password");

@@ -38,6 +38,8 @@ const runAllTests = async () => {
 
   const tests = [
     "test-validation-direct.js",
+    "test-address.js",
+    "test-category-image.js",
     "test-login.js",
     "test-super-admin-validation.js",
   ];

@@ -7,6 +7,7 @@ import {
 } from "../controllers/category.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { verifyAdmin } from "../middlewares/admin.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
 
 const categoryRouter = Router();
 
@@ -14,8 +15,28 @@ const categoryRouter = Router();
 categoryRouter.route("/").get(getAllCategories);
 
 // Admin routes
-categoryRouter.route("/").post(verifyJWT, verifyAdmin, createCategory);
-categoryRouter.route("/:id").put(verifyJWT, verifyAdmin, updateCategory);
+categoryRouter.route("/").post(
+  verifyJWT,
+  verifyAdmin,
+  upload.fields([
+    {
+      name: "image",
+      maxCount: 1,
+    },
+  ]),
+  createCategory
+);
+categoryRouter.route("/:id").put(
+  verifyJWT,
+  verifyAdmin,
+  upload.fields([
+    {
+      name: "image",
+      maxCount: 1,
+    },
+  ]),
+  updateCategory
+);
 categoryRouter.route("/:id").delete(verifyJWT, verifyAdmin, deleteCategory);
 
 export default categoryRouter;

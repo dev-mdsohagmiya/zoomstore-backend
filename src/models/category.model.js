@@ -15,6 +15,9 @@ const categorySchema = new Schema(
       lowercase: true,
       trim: true,
     },
+    image: {
+      type: String, // cloudinary url
+    },
   },
   {
     timestamps: true,

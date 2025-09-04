@@ -186,6 +186,12 @@ Body:
 - password: string (required)
 - photo: file (optional)
 - role: string (optional, default: 'user')
+- address: object (optional)
+  - street: string (optional)
+  - city: string (optional)
+  - state: string (optional)
+  - zipCode: string (optional)
+  - country: string (optional, default: 'Bangladesh')
 
 Response: Returns user data with access token (auto-login)
 ```
@@ -229,6 +235,12 @@ Body:
 - name: string (optional)
 - email: string (optional)
 - photo: file (optional)
+- address: object (optional)
+  - street: string (optional)
+  - city: string (optional)
+  - state: string (optional)
+  - zipCode: string (optional)
+  - country: string (optional)
 ```
 
 #### Get All Users (Admin)
@@ -257,6 +269,12 @@ Body:
 - email: string (required)
 - password: string (required)
 - photo: file (optional)
+- address: object (optional)
+  - street: string (optional)
+  - city: string (optional)
+  - state: string (optional)
+  - zipCode: string (optional)
+  - country: string (optional)
 
 Response: Returns admin data with access token (auto-login)
 ```
@@ -288,9 +306,13 @@ GET /categories
 ```http
 POST /categories
 Authorization: Bearer <admin_access_token>
-Content-Type: application/json
+Content-Type: multipart/form-data
 
 Body:
+- name: string (required)
+- image: file (optional)
+
+Example:
 {
   "name": "Electronics"
 }
@@ -301,9 +323,13 @@ Body:
 ```http
 PUT /categories/:id
 Authorization: Bearer <admin_access_token>
-Content-Type: application/json
+Content-Type: multipart/form-data
 
 Body:
+- name: string (required)
+- image: file (optional)
+
+Example:
 {
   "name": "Updated Category Name"
 }
