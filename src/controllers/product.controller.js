@@ -104,7 +104,7 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 
   const slug = name
-    .toLowerCase()
+    ?.toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "");
 
@@ -138,6 +138,14 @@ const createProduct = asyncHandler(async (req, res) => {
     categories: categoryIds,
     photos,
   });
+
+  // Update categories to include this product
+  if (categoryIds.length > 0) {
+    await Category.updateMany(
+      { _id: { $in: categoryIds } },
+      { $addToSet: { products: product._id } }
+    );
+  }
 
   const createdProduct = await Product.findById(product._id).populate(
     "categories",
@@ -186,12 +194,30 @@ const updateProduct = asyncHandler(async (req, res) => {
     updateData.photos = photos;
   }
 
-  // Validate categories
+  // Handle category updates
   if (categories && categories.length > 0) {
     const categoryIds = await Category.find({
       _id: { $in: categories },
     }).select("_id");
-    updateData.categories = categoryIds.map((cat) => cat._id);
+    const newCategoryIds = categoryIds.map((cat) => cat._id);
+
+    // Remove product from old categories
+    if (product.categories.length > 0) {
+      await Category.updateMany(
+        { _id: { $in: product.categories } },
+        { $pull: { products: product._id } }
+      );
+    }
+
+    // Add product to new categories
+    if (newCategoryIds.length > 0) {
+      await Category.updateMany(
+        { _id: { $in: newCategoryIds } },
+        { $addToSet: { products: product._id } }
+      );
+    }
+
+    updateData.categories = newCategoryIds;
   }
 
   const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
@@ -206,11 +232,21 @@ const updateProduct = asyncHandler(async (req, res) => {
 const deleteProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const product = await Product.findByIdAndDelete(id);
-
+  const product = await Product.findById(id);
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
+
+  // Remove product from all categories
+  if (product.categories.length > 0) {
+    await Category.updateMany(
+      { _id: { $in: product.categories } },
+      { $pull: { products: product._id } }
+    );
+  }
+
+  // Delete the product
+  await Product.findByIdAndDelete(id);
 
   return res
     .status(200)

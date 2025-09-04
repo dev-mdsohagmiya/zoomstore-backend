@@ -5,7 +5,9 @@ import { Category } from "../models/category.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const getAllCategories = asyncHandler(async (req, res) => {
-  const categories = await Category.find({}).sort({ createdAt: -1 });
+  const categories = await Category.find({})
+    .populate("products", "name slug price photos rating numReviews")
+    .sort({ createdAt: -1 });
 
   return res
     .status(200)

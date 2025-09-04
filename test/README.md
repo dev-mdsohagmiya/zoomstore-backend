@@ -7,6 +7,7 @@ This directory contains all test files for the Zoomit backend application.
 - **`test-validation-direct.js`** - Tests direct model validation for super admin creation
 - **`test-address.js`** - Tests address functionality in user model
 - **`test-category-image.js`** - Tests category image functionality
+- **`test-category-products.js`** - Tests category-product relationship functionality
 - **`test-login.js`** - Tests login functionality for different user roles
 - **`test-super-admin-validation.js`** - Tests API endpoint validation for super admin creation
 - **`start-server.js`** - Starts the server for testing purposes
@@ -25,6 +26,9 @@ node test/test-address.js
 
 # Test category image functionality
 node test/test-category-image.js
+
+# Test category-product relationship
+node test/test-category-products.js
 
 # Test login functionality
 node test/test-login.js

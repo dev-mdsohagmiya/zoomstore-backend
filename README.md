@@ -57,10 +57,11 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
 - **Role-based Authentication**: User, Admin, and Super Admin roles
 - **JWT Authentication**: Secure token-based authentication
 - **Product Management**: Admin-only product CRUD operations
-- **Category Management**: Admin-only category management
+- **Category Management**: Admin-only category management with automatic product relationships
 - **Order Management**: Complete order lifecycle with status tracking
 - **Review System**: Purchase-verified product reviews
 - **File Upload**: Cloudinary integration for image uploads
+- **Category-Product Relationships**: Automatic bidirectional relationship management
 - **Pagination**: Built-in pagination for all list endpoints
 - **Search & Filtering**: Advanced product search and filtering
 
@@ -299,7 +300,37 @@ Response: Returns super admin data
 
 ```http
 GET /categories
-````
+```
+
+Response: Returns categories with populated products
+```json
+{
+  "statusCode": 200,
+  "data": [
+    {
+      "_id": "category_id",
+      "name": "Electronics",
+      "slug": "electronics",
+      "image": "https://example.com/electronics.jpg",
+      "products": [
+        {
+          "_id": "product_id",
+          "name": "Gaming Laptop",
+          "slug": "gaming-laptop",
+          "price": 1200,
+          "photos": ["https://example.com/laptop.jpg"],
+          "rating": 4.5,
+          "numReviews": 10
+        }
+      ],
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "message": "Categories retrieved successfully",
+  "success": true
+}
+```
 
 #### Create Category (Admin)
 
@@ -664,13 +695,14 @@ All successful responses follow this format:
 }
 ```
 
-## 🧪 Testing
+## 🔗 Category-Product Relationship
 
-The project includes comprehensive test suites located in the `test/` directory:
+The system automatically manages the relationship between categories and products:
 
-- **Direct Model Tests**: Test User model validation without server
-- **API Tests**: Test HTTP endpoints with server running
-- **Integration Tests**: Test complete request/response cycles
+- **Automatic Updates**: When products are created/updated/deleted, categories are automatically updated
+- **Bidirectional Relationship**: Products reference categories, and categories include their products
+- **Populated Responses**: Category endpoints return products within each category
+- **Data Consistency**: Product deletion removes the product from all associated categories
 
 ### Quick Test Commands
 
@@ -747,3 +779,4 @@ If you encounter any issues or have questions, please create an issue in the rep
 ---
 
 **Happy Coding! 🎉**
+````

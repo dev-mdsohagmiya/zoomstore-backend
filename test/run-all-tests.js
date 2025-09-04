@@ -40,6 +40,7 @@ const runAllTests = async () => {
     "test-validation-direct.js",
     "test-address.js",
     "test-category-image.js",
+    "test-category-products.js",
     "test-login.js",
     "test-super-admin-validation.js",
   ];

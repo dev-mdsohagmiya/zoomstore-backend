@@ -18,6 +18,12 @@ const categorySchema = new Schema(
     image: {
       type: String, // cloudinary url
     },
+    products: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
   },
   {
     timestamps: true,
