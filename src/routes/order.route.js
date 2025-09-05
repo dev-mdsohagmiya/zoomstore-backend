@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createOrder,
+  createOrderWithPayment,
   getMyOrders,
   getAllOrders,
   getOrderById,
@@ -15,6 +16,9 @@ const orderRouter = Router();
 
 // User routes
 orderRouter.route("/").post(verifyJWT, upload.array("photos", 5), createOrder);
+orderRouter
+  .route("/with-payment")
+  .post(verifyJWT, upload.array("photos", 5), createOrderWithPayment);
 orderRouter.route("/myorders").get(verifyJWT, getMyOrders);
 orderRouter.route("/:id").get(verifyJWT, getOrderById);
 orderRouter.route("/status/:id").get(verifyJWT, getOrderStatus);
