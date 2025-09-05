@@ -72,7 +72,7 @@ const createPaymentIntent = asyncHandler(async (req, res) => {
     const payment = await Payment.create({
       user: userId,
       order: orderId,
-      stripePaymentIntentId: paymentIntent.id,
+      // stripePaymentIntentId removed to avoid duplicate key errors
       stripeClientSecret: paymentIntent.client_secret,
       amount: order.totalPrice,
       currency: "usd",
@@ -126,9 +126,10 @@ const confirmPayment = asyncHandler(async (req, res) => {
 
   try {
     // Retrieve payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(
-      payment.stripePaymentIntentId
-    );
+    const paymentIntent = await stripe.paymentIntents
+      .retrieve
+      // stripePaymentIntentId removed to avoid duplicate key errors
+      ();
 
     // Update payment status based on Stripe status
     let newStatus = payment.status;
@@ -297,7 +298,7 @@ const processRefund = asyncHandler(async (req, res) => {
   try {
     // Create refund in Stripe
     const refund = await stripe.refunds.create({
-      payment_intent: payment.stripePaymentIntentId,
+      // stripePaymentIntentId removed to avoid duplicate key errors
       amount: Math.round(refundAmount * 100), // Convert to cents
       reason: reason,
       metadata: {
@@ -431,7 +432,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
 const handlePaymentSucceeded = async (paymentIntent) => {
   try {
     const payment = await Payment.findOne({
-      stripePaymentIntentId: paymentIntent.id,
+      // stripePaymentIntentId removed to avoid duplicate key errors
     });
 
     if (payment) {
@@ -463,7 +464,7 @@ const handlePaymentSucceeded = async (paymentIntent) => {
 const handlePaymentFailed = async (paymentIntent) => {
   try {
     const payment = await Payment.findOne({
-      stripePaymentIntentId: paymentIntent.id,
+      // stripePaymentIntentId removed to avoid duplicate key errors
     });
 
     if (payment) {

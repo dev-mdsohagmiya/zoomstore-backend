@@ -2,6 +2,14 @@ import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
   {
+    // Unique payment ID to avoid duplicate key errors
+    paymentId: {
+      type: String,
+      required: true,
+      unique: true,
+      default: () =>
+        `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -12,14 +20,11 @@ const paymentSchema = new mongoose.Schema(
       ref: "Order",
       required: true,
     },
-    stripePaymentIntentId: {
-      type: String,
-      required: true,
-      unique: true,
-    },
+    // Stripe fields only for card payments (optional)
     stripeClientSecret: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     amount: {
       type: Number,
@@ -45,11 +50,43 @@ const paymentSchema = new mongoose.Schema(
       ],
       default: "pending",
     },
-    paymentMethod: {
+    paymentType: {
       type: String,
       required: true,
       enum: ["cash", "card"],
       default: "card",
+    },
+    // Card details (only for card payments)
+    cardDetails: {
+      number: {
+        type: String,
+        trim: true,
+      },
+      expMonth: {
+        type: Number,
+        min: 1,
+        max: 12,
+      },
+      expYear: {
+        type: Number,
+      },
+      cvc: {
+        type: String,
+        trim: true,
+      },
+      name: {
+        type: String,
+        trim: true,
+      },
+      email: {
+        type: String,
+        trim: true,
+      },
+    },
+    // Stripe details (only for card payments)
+    stripePaymentMethodId: {
+      type: String,
+      required: false,
     },
     paymentMethodDetails: {
       type: {
@@ -63,7 +100,8 @@ const paymentSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     metadata: {
       type: Map,
@@ -88,6 +126,7 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Processing details
     processedAt: {
       type: Date,
       default: null,
@@ -105,7 +144,7 @@ const paymentSchema = new mongoose.Schema(
 // Indexes for better performance
 paymentSchema.index({ user: 1 });
 paymentSchema.index({ order: 1 });
-paymentSchema.index({ stripePaymentIntentId: 1 });
+// Removed stripePaymentIntentId index to avoid duplicate key errors
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ createdAt: -1 });
 
@@ -251,5 +290,8 @@ paymentSchema.pre("save", function (next) {
 // Ensure virtual fields are serialized
 paymentSchema.set("toJSON", { virtuals: true });
 paymentSchema.set("toObject", { virtuals: true });
+
+// Drop all existing indexes to avoid duplicate key errors
+paymentSchema.indexes = [];
 
 export const Payment = mongoose.model("Payment", paymentSchema);

@@ -278,6 +278,26 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
 
   const userId = req.user._id;
 
+  // Validate payment type
+  if (!["cash", "card"].includes(paymentType)) {
+    throw new ApiError(400, "Payment type must be 'cash' or 'card'");
+  }
+
+  // Validate card details for card payments
+  if (paymentType === "card") {
+    if (
+      !cardDetails ||
+      !cardDetails.number ||
+      !cardDetails.expMonth ||
+      !cardDetails.expYear ||
+      !cardDetails.cvc ||
+      !cardDetails.name ||
+      !cardDetails.email
+    ) {
+      throw new ApiError(400, "Card details are required for card payments");
+    }
+  }
+
   if (!items || items.length === 0) {
     throw new ApiError(400, "Order items are required");
   }
@@ -331,6 +351,15 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
     });
   }
 
+  // Update product stock
+  for (const item of orderItems) {
+    await Product.findByIdAndUpdate(
+      item.product,
+      { $inc: { stock: -item.qty } },
+      { new: true }
+    );
+  }
+
   // Calculate shipping price (you can customize this logic)
   const shippingPrice = itemsPrice > 100 ? 0 : 10; // Free shipping over $100
   const taxPrice = itemsPrice * 0.1; // 10% tax
@@ -360,7 +389,7 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
     try {
       // Create Stripe payment method
       const paymentMethod = await stripe.paymentMethods.create({
-        type: 'card',
+        type: "card",
         card: {
           number: cardDetails.number,
           exp_month: cardDetails.expMonth,
@@ -384,7 +413,7 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
         currency: "usd",
         payment_method: paymentMethod.id,
         confirm: true,
-        payment_method_types: ['card'],
+        payment_method_types: ["card"],
         metadata: {
           orderId: order._id.toString(),
           userId: userId.toString(),
@@ -397,19 +426,43 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
       const payment = await Payment.create({
         user: userId,
         order: order._id,
-        stripePaymentIntentId: paymentIntent.id,
+        paymentType: "card",
+        cardDetails: {
+          number: cardDetails.number,
+          expMonth: cardDetails.expMonth,
+          expYear: cardDetails.expYear,
+          cvc: cardDetails.cvc,
+          name: cardDetails.name,
+          email: cardDetails.email,
+        },
         stripeClientSecret: paymentIntent.client_secret,
+        stripePaymentMethodId: paymentMethod.id,
         amount: totalPrice,
         currency: "usd",
-        status: "pending",
-        paymentMethod: paymentType,
-        description: `Payment for Order #${order.orderNumber || order._id}`,
+        status: paymentIntent.status,
+        paymentMethodDetails: {
+          brand: paymentMethod.card.brand,
+          last4: paymentMethod.card.last4,
+          expMonth: paymentMethod.card.exp_month,
+          expYear: paymentMethod.card.exp_year,
+          funding: paymentMethod.card.funding,
+        },
+        processedAt: new Date(),
         metadata: {
           orderNumber: order.orderNumber || order._id,
           userEmail: populatedOrder.user.email,
           userName: populatedOrder.user.name,
         },
       });
+
+      // Update order status based on payment
+      if (paymentIntent.status === "succeeded") {
+        order.status = "confirmed";
+        await order.save();
+      } else if (paymentIntent.status === "requires_action") {
+        order.status = "pending";
+        await order.save();
+      }
 
       return res.status(201).json(
         new ApiResponse(
@@ -418,14 +471,16 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
             order: populatedOrder,
             payment: {
               paymentId: payment._id,
-              clientSecret: paymentIntent.client_secret,
-              amount: totalPrice,
-              currency: "usd",
-              status: "pending",
-              stripePaymentIntentId: paymentIntent.id,
+              paymentType: payment.paymentType,
+              amount: payment.amount,
+              currency: payment.currency,
+              status: payment.status,
+              processedAt: payment.processedAt,
+              // stripePaymentIntentId removed to avoid duplicate key errors
+              paymentMethodDetails: payment.paymentMethodDetails,
             },
           },
-          "Order created successfully with payment intent"
+          "Order created successfully with card payment"
         )
       );
     } catch (error) {
@@ -433,11 +488,44 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
       await Order.findByIdAndDelete(order._id);
       throw new ApiError(500, `Payment processing failed: ${error.message}`);
     }
-  }
+  } else if (paymentType === "cash") {
+    // Create cash payment record
+    const payment = await Payment.create({
+      user: userId,
+      order: order._id,
+      paymentType: "cash",
+      amount: totalPrice,
+      currency: "usd",
+      status: "pending",
+      metadata: {
+        orderNumber: order.orderNumber || order._id,
+        userEmail: populatedOrder.user.email,
+        userName: populatedOrder.user.name,
+      },
+    });
 
-  // If paymentType is not "card", you might want to handle other payment methods here
-  // For now, we'll return an error or a generic success message
-  throw new ApiError(400, "Unsupported payment method");
+    // For cash payments, order remains pending until admin confirms
+    order.status = "pending";
+    await order.save();
+
+    return res.status(201).json(
+      new ApiResponse(
+        201,
+        {
+          order: populatedOrder,
+          payment: {
+            paymentId: payment._id,
+            paymentType: payment.paymentType,
+            amount: payment.amount,
+            currency: payment.currency,
+            status: payment.status,
+            processedAt: null,
+          },
+        },
+        "Order created successfully with cash payment"
+      )
+    );
+  }
 });
 
 export {
