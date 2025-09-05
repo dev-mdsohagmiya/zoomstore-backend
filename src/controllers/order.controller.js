@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Order } from "../models/order.model.js";
 import { Product } from "../models/product.model.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const createOrder = asyncHandler(async (req, res) => {
   const { items, shippingAddress, paymentMethod } = req.body;
@@ -14,6 +15,25 @@ const createOrder = asyncHandler(async (req, res) => {
 
   if (!shippingAddress || !paymentMethod) {
     throw new ApiError(400, "Shipping address and payment method are required");
+  }
+
+  // Handle photo uploads
+  let uploadedPhotos = [];
+  if (req.files && req.files.length > 0) {
+    try {
+      for (const file of req.files) {
+        const cloudinaryResponse = await uploadOnCloudinary(file.path);
+        if (cloudinaryResponse) {
+          uploadedPhotos.push({
+            url: cloudinaryResponse.url,
+            publicId: cloudinaryResponse.public_id,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error uploading photos:", error);
+      throw new ApiError(500, "Failed to upload photos");
+    }
   }
 
   let itemsPrice = 0;
@@ -59,6 +79,7 @@ const createOrder = asyncHandler(async (req, res) => {
     itemsPrice,
     shippingPrice,
     totalPrice,
+    photos: uploadedPhotos,
   });
 
   const createdOrder = await Order.findById(order._id).populate(

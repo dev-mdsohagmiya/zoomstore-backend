@@ -92,6 +92,18 @@ const orderSchema = new Schema(
     deliveredAt: {
       type: Date,
     },
+    photos: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        publicId: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

@@ -110,8 +110,8 @@ const createProduct = asyncHandler(async (req, res) => {
 
   // Handle photo uploads
   const photos = [];
-  if (req.files && req.files.photos) {
-    for (const file of req.files.photos) {
+  if (req.files && req.files.length > 0) {
+    for (const file of req.files) {
       const uploadedPhoto = await uploadOnCloudinary(file.path);
       if (uploadedPhoto) {
         photos.push(uploadedPhoto.url);
@@ -183,9 +183,9 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (status) updateData.status = status;
 
   // Handle photo uploads
-  if (req.files && req.files.photos) {
+  if (req.files && req.files.length > 0) {
     const photos = [...product.photos];
-    for (const file of req.files.photos) {
+    for (const file of req.files) {
       const uploadedPhoto = await uploadOnCloudinary(file.path);
       if (uploadedPhoto) {
         photos.push(uploadedPhoto.url);

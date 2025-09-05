@@ -194,14 +194,39 @@ const getAllUsers = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
+  const { role, search } = req.query;
 
-  const users = await User.find({})
+  // Build filter object
+  let filter = {};
+
+  // Role filter
+  if (role) {
+    const validRoles = ["user", "admin", "superadmin"];
+    if (validRoles.includes(role)) {
+      filter.role = role;
+    } else {
+      throw new ApiError(
+        400,
+        `Invalid role. Valid roles are: ${validRoles.join(", ")}`
+      );
+    }
+  }
+
+  // Search filter
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const users = await User.find(filter)
     .select("-password")
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 });
 
-  const totalUsers = await User.countDocuments();
+  const totalUsers = await User.countDocuments(filter);
 
   return res.status(200).json(
     new ApiResponse(
@@ -213,6 +238,10 @@ const getAllUsers = asyncHandler(async (req, res) => {
           limit,
           total: totalUsers,
           pages: Math.ceil(totalUsers / limit),
+        },
+        filters: {
+          role: role || null,
+          search: search || null,
         },
       },
       "Users retrieved successfully"
