@@ -21,12 +21,14 @@ import userRouter from "./routes/user.route.js";
 import categoryRouter from "./routes/category.route.js";
 import productRouter from "./routes/product.route.js";
 import orderRouter from "./routes/order.route.js";
+import { cartRouter } from "./routes/cart.route.js";
 
 //routes declaration
 app.use("/api/v1/", userRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/orders", orderRouter);
+app.use("/api/v1/cart", cartRouter);
 
 // Error handling middleware (must be after routes)
 app.use(notFoundHandler);
