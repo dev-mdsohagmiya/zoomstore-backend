@@ -8,10 +8,12 @@ A robust, scalable e-commerce backend API built with Node.js, Express.js, and Mo
 - **📦 Complete Product Management**: Admin-controlled product CRUD with photo uploads, sizes, and colors
 - **🛒 Advanced Shopping Cart**: Smart cart system with stock management and automatic expiration
 - **📋 Order Management**: Full order lifecycle with status tracking and photo uploads
+- **💳 Integrated Payment System**: Stripe payment integration with cash and card payment options
 - **👥 User Management**: Comprehensive user administration with role-based permissions
 - **📸 Photo Uploads**: Cloudinary integration for seamless image management
 - **🔍 Advanced Search**: Powerful filtering and search capabilities across all entities
 - **📊 Admin Dashboard**: Complete admin control over users, products, orders, and carts
+- **🔄 Duplicate Order Support**: Multiple orders with same data allowed
 
 ## 📑 Table of Contents
 
@@ -46,6 +48,7 @@ A robust, scalable e-commerce backend API built with Node.js, Express.js, and Mo
     - [Delete Product Review (Admin)](#delete-product-review-admin)
   - [Order Endpoints](#order-endpoints)
     - [Create Order](#create-order)
+    - [Create Order with Payment](#create-order-with-payment)
     - [Get My Orders](#get-my-orders)
     - [Get All Orders (Admin)](#get-all-orders-admin)
     - [Get Order by ID](#get-order-by-id)
@@ -881,10 +884,11 @@ Content-Type: multipart/form-data
 Body:
 - items: JSON string (required)
 - shippingAddress: JSON string (required)
-- paymentMethod: string (optional, default: "card")
+- paymentType: string (required: "cash" or "card")
+- cardDetails: JSON string (required for card payments)
 - photos: files (optional, max 5)
 
-Example:
+Example for Card Payment:
 ```json
 {
   "items": [
@@ -899,16 +903,46 @@ Example:
     "postalCode": "10001",
     "country": "USA"
   },
-  "paymentMethod": "card"
+  "paymentType": "card",
+  "cardDetails": {
+    "number": "4242424242424242",
+    "expMonth": 12,
+    "expYear": 2025,
+    "cvc": "123",
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}
+```
+
+Example for Cash Payment:
+```json
+{
+  "items": [
+    {
+      "product": "product_id",
+      "qty": 2
+    }
+  ],
+  "shippingAddress": {
+    "address": "123 Main St",
+    "city": "New York",
+    "postalCode": "10001",
+    "country": "USA"
+  },
+  "paymentType": "cash"
 }
 ```
 
 **What this endpoint does:**
-- Creates an order and payment intent in one request
+- Creates an order and payment in one request
+- Supports both cash and card payment types
 - Automatically calculates shipping and tax
-- Generates Stripe payment intent
+- For card payments: Generates Stripe payment intent
+- For cash payments: Creates pending payment record
 - Returns both order details and payment information
 - Perfect for streamlined checkout process
+- Allows duplicate orders with same data
 
 **Response:**
 ```json
@@ -1048,6 +1082,16 @@ Body:
 {
   "status": "shipped"
 }
+```
+
+**Available Order Statuses:**
+- `pending` - Order placed, awaiting confirmation
+- `confirmed` - Order confirmed by admin
+- `processing` - Order being prepared
+- `shipped` - Order shipped
+- `out-for-delivery` - Order out for delivery
+- `delivered` - Order delivered
+- `cancelled` - Order cancelled
 ```
 
 Valid statuses: `pending`, `processing`, `shipped`, `out-for-delivery`, `delivered`, `cancelled`
@@ -3490,10 +3534,12 @@ node test/test-payment-functionality.js
 
 #### **🔑 Key Features:**
 - **🛒 One-Click Checkout** - Order এবং payment একসাথে create করা
-- **💳 Automatic Payment Intent** - Stripe payment intent automatically generate করা
+- **💳 Multiple Payment Types** - Cash এবং card payment support
 - **📊 Real-time Calculation** - Shipping, tax, এবং total price automatically calculate করা
 - **🔄 Seamless Integration** - Order এবং payment system এর মধ্যে seamless integration
 - **📱 Frontend Ready** - Frontend developers এর জন্য ready-to-use API
+- **🔄 Duplicate Order Support** - Multiple orders with same data allowed
+- **🛡️ Secure Processing** - Stripe integration with secure payment processing
 
 #### **📋 How It Works:**
 1. **User creates order** with items and shipping details
