@@ -42,6 +42,8 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
   - [Using Postman/Insomnia](#using-postmaninsomnia)
   - [Using cURL](#using-curl)
   - [Using JavaScript/Fetch](#using-javascriptfetch)
+- [📸 Photo Upload Features](#-photo-upload-features)
+- [🔍 Search & Filtering Features](#-search--filtering-features)
 - [🔐 Role-Based Access Control](#-role-based-access-control)
 - [📁 Project Structure](#-project-structure)
 - [🚨 Error Handling](#-error-handling)
@@ -56,14 +58,16 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
 
 - **Role-based Authentication**: User, Admin, and Super Admin roles
 - **JWT Authentication**: Secure token-based authentication
-- **Product Management**: Admin-only product CRUD operations
+- **Product Management**: Admin-only product CRUD operations with photo uploads
 - **Category Management**: Admin-only category management with automatic product relationships
-- **Order Management**: Complete order lifecycle with status tracking
+- **Order Management**: Complete order lifecycle with status tracking and photo uploads
 - **Review System**: Purchase-verified product reviews
-- **File Upload**: Cloudinary integration for image uploads
+- **File Upload**: Cloudinary integration for image uploads (products, categories, orders, users)
 - **Category-Product Relationships**: Automatic bidirectional relationship management
 - **Pagination**: Built-in pagination for all list endpoints
-- **Search & Filtering**: Advanced product search and filtering
+- **Search & Filtering**: Advanced product search and filtering, user role filtering
+- **Photo Upload Support**: Multiple photo uploads for products and orders
+- **User Management**: Role-based user filtering and search functionality
 
 ## 📋 Prerequisites
 
@@ -247,8 +251,53 @@ Body:
 #### Get All Users (Admin)
 
 ```http
-GET /users?page=1&limit=10
+GET /users?page=1&limit=10&role=user&search=john
 Authorization: Bearer <admin_access_token>
+```
+
+Query Parameters:
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 10)
+- `role`: Filter by role (`user`, `admin`, `superadmin`)
+- `search`: Search in name and email (case-insensitive)
+
+Response:
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "users": [
+      {
+        "_id": "user_id",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "role": "user",
+        "photo": "https://example.com/photo.jpg",
+        "address": {
+          "street": "123 Main St",
+          "city": "New York",
+          "state": "NY",
+          "zipCode": "10001",
+          "country": "USA"
+        },
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 25,
+      "pages": 3
+    },
+    "filters": {
+      "role": "user",
+      "search": "john"
+    }
+  },
+  "message": "Users retrieved successfully",
+  "success": true
+}
 ```
 
 #### Delete User (Admin)
@@ -412,6 +461,41 @@ Body:
 - stock: number (optional, default: 0)
 - categories: array of category IDs (optional)
 - photos: files (optional, max 5)
+
+Response:
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "product_id",
+    "name": "Gaming Laptop",
+    "slug": "gaming-laptop",
+    "description": "High-performance gaming laptop",
+    "price": 1200,
+    "discount": 10,
+    "stock": 50,
+    "inStock": true,
+    "status": "active",
+    "photos": [
+      "https://res.cloudinary.com/example/image/upload/v1234567890/laptop1.jpg",
+      "https://res.cloudinary.com/example/image/upload/v1234567890/laptop2.jpg"
+    ],
+    "categories": [
+      {
+        "_id": "category_id",
+        "name": "Electronics",
+        "slug": "electronics"
+      }
+    ],
+    "numReviews": 0,
+    "rating": 0,
+    "reviews": [],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "message": "Product created successfully",
+  "success": true
+}
 ```
 
 #### Update Product (Admin)
@@ -459,9 +543,16 @@ Authorization: Bearer <admin_access_token>
 ```http
 POST /orders
 Authorization: Bearer <access_token>
-Content-Type: application/json
+Content-Type: multipart/form-data
 
 Body:
+- items: JSON string (required)
+- shippingAddress: JSON string (required)
+- paymentMethod: string (required)
+- photos: files (optional, max 5)
+
+Example:
+```json
 {
   "items": [
     {
@@ -476,6 +567,56 @@ Body:
     "country": "USA"
   },
   "paymentMethod": "credit_card"
+}
+```
+
+Response:
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "order_id",
+    "user": {
+      "_id": "user_id",
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "items": [
+      {
+        "product": "product_id",
+        "name": "Gaming Laptop",
+        "price": 1200,
+        "qty": 2
+      }
+    ],
+    "shippingAddress": {
+      "address": "123 Main St",
+      "city": "New York",
+      "postalCode": "10001",
+      "country": "USA"
+    },
+    "paymentMethod": "credit_card",
+    "itemsPrice": 2400,
+    "shippingPrice": 0,
+    "totalPrice": 2400,
+    "status": "pending",
+    "isPaid": false,
+    "isDelivered": false,
+    "photos": [
+      {
+        "url": "https://res.cloudinary.com/example/image/upload/v1234567890/order1.jpg",
+        "publicId": "order1_abc123"
+      },
+      {
+        "url": "https://res.cloudinary.com/example/image/upload/v1234567890/order2.jpg",
+        "publicId": "order2_def456"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "message": "Order created successfully",
+  "success": true
 }
 ```
 
@@ -536,7 +677,7 @@ Valid statuses: `pending`, `processing`, `shipped`, `out-for-delivery`, `deliver
 #### Register a new user:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/auth/register \
+curl -X POST http://localhost:8000/api/v1/users/auth/register \
   -F "name=John Doe" \
   -F "email=john@example.com" \
   -F "password=password123"
@@ -545,7 +686,7 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 #### Login:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/auth/login \
+curl -X POST http://localhost:8000/api/v1/users/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"john@example.com","password":"password123"}'
 ```
@@ -556,13 +697,59 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 curl -X GET http://localhost:8000/api/v1/products
 ```
 
+#### Create a product with photos (Admin):
+
+```bash
+curl -X POST http://localhost:8000/api/v1/products \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "name=Gaming Laptop" \
+  -F "description=High-performance gaming laptop" \
+  -F "price=1200" \
+  -F "discount=10" \
+  -F "stock=50" \
+  -F "categories=[\"category_id\"]" \
+  -F "photos=@/path/to/image1.jpg" \
+  -F "photos=@/path/to/image2.jpg"
+```
+
+#### Create an order with photos:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/orders \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "items=[{\"product\":\"product_id\",\"qty\":2}]" \
+  -F "shippingAddress={\"address\":\"123 Main St\",\"city\":\"New York\",\"postalCode\":\"10001\",\"country\":\"USA\"}" \
+  -F "paymentMethod=credit_card" \
+  -F "photos=@/path/to/order_photo.jpg"
+```
+
+#### Get users with role filtering (Admin):
+
+```bash
+# Get all users
+curl -X GET "http://localhost:8000/api/v1/users?page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Get only users with 'user' role
+curl -X GET "http://localhost:8000/api/v1/users?page=1&limit=10&role=user" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Search users by name or email
+curl -X GET "http://localhost:8000/api/v1/users?page=1&limit=10&search=john" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Combined filters
+curl -X GET "http://localhost:8000/api/v1/users?page=1&limit=10&role=user&search=john" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
 #### Create a category (Admin):
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/categories \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Electronics"}'
+  -F "name=Electronics" \
+  -F "image=@/path/to/category_image.jpg"
 ```
 
 ### Using JavaScript/Fetch
@@ -695,6 +882,129 @@ All successful responses follow this format:
 }
 ```
 
+### Common Response Examples
+
+#### Product with Photos
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "product_id",
+    "name": "Gaming Laptop",
+    "slug": "gaming-laptop",
+    "description": "High-performance gaming laptop",
+    "price": 1200,
+    "discount": 10,
+    "stock": 50,
+    "inStock": true,
+    "status": "active",
+    "photos": [
+      "https://res.cloudinary.com/example/image/upload/v1234567890/laptop1.jpg",
+      "https://res.cloudinary.com/example/image/upload/v1234567890/laptop2.jpg"
+    ],
+    "categories": [
+      {
+        "_id": "category_id",
+        "name": "Electronics",
+        "slug": "electronics"
+      }
+    ],
+    "numReviews": 5,
+    "rating": 4.5,
+    "reviews": [...],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "message": "Product created successfully",
+  "success": true
+}
+```
+
+#### Order with Photos
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "order_id",
+    "user": {
+      "_id": "user_id",
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "items": [
+      {
+        "product": "product_id",
+        "name": "Gaming Laptop",
+        "price": 1200,
+        "qty": 2
+      }
+    ],
+    "shippingAddress": {
+      "address": "123 Main St",
+      "city": "New York",
+      "postalCode": "10001",
+      "country": "USA"
+    },
+    "paymentMethod": "credit_card",
+    "itemsPrice": 2400,
+    "shippingPrice": 0,
+    "totalPrice": 2400,
+    "status": "pending",
+    "isPaid": false,
+    "isDelivered": false,
+    "photos": [
+      {
+        "url": "https://res.cloudinary.com/example/image/upload/v1234567890/order1.jpg",
+        "publicId": "order1_abc123"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "message": "Order created successfully",
+  "success": true
+}
+```
+
+#### Users with Filtering
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "users": [
+      {
+        "_id": "user_id",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "role": "user",
+        "photo": "https://res.cloudinary.com/example/image/upload/v1234567890/user.jpg",
+        "address": {
+          "street": "123 Main St",
+          "city": "New York",
+          "state": "NY",
+          "zipCode": "10001",
+          "country": "USA"
+        },
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 25,
+      "pages": 3
+    },
+    "filters": {
+      "role": "user",
+      "search": "john"
+    }
+  },
+  "message": "Users retrieved successfully",
+  "success": true
+}
+```
+
 ## 🔗 Category-Product Relationship
 
 The system automatically manages the relationship between categories and products:
@@ -703,6 +1013,38 @@ The system automatically manages the relationship between categories and product
 - **Bidirectional Relationship**: Products reference categories, and categories include their products
 - **Populated Responses**: Category endpoints return products within each category
 - **Data Consistency**: Product deletion removes the product from all associated categories
+
+## 🔍 Search & Filtering Features
+
+### Product Filtering
+- **Category Filter**: Filter products by category slug
+- **Price Range**: Filter by minimum and maximum price
+- **Search**: Search in product name and description
+- **Sorting**: Sort by price (low/high), rating, or newest
+- **Pagination**: Built-in pagination support
+
+### User Filtering (Admin Only)
+- **Role Filter**: Filter users by role (user, admin, superadmin)
+- **Search**: Search users by name or email
+- **Combined Filters**: Use multiple filters together
+- **Pagination**: Built-in pagination support
+
+### Order Filtering (Admin Only)
+- **Status Filter**: Filter orders by status
+- **Date Range**: Filter by start and end dates
+- **Pagination**: Built-in pagination support
+
+### Example Filtering Queries
+```bash
+# Product filtering
+GET /products?category=electronics&search=laptop&minPrice=100&maxPrice=1000&sort=price-low
+
+# User filtering (Admin)
+GET /users?role=user&search=john&page=1&limit=10
+
+# Order filtering (Admin)
+GET /orders?status=pending&startDate=2024-01-01&endDate=2024-12-31
+```
 
 ### Quick Test Commands
 
@@ -718,9 +1060,84 @@ node test/test-login.js
 
 # Test direct model validation
 node test/test-validation-direct.js
+
+# Test product photo upload functionality
+node test/test-product-photo-upload.js
+
+# Test order photo upload functionality
+node test/test-order-photo-upload.js
+
+# Test user role filtering functionality
+node test/test-user-role-filtering.js
+```
+
+### Testing New Features
+
+#### Product Photo Upload Testing
+```bash
+# Test product creation with single photo
+node test/test-product-photo-upload.js
+
+# Test product creation with multiple photos
+# The test script automatically tests both single and multiple photo uploads
+```
+
+#### Order Photo Upload Testing
+```bash
+# Test order creation with photo uploads
+node test/test-order-photo-upload.js
+
+# Test order creation with multiple photos
+# The test script handles both single and multiple photo scenarios
+```
+
+#### User Role Filtering Testing
+```bash
+# Test user filtering by role and search
+node test/test-user-role-filtering.js
+
+# Test cases include:
+# - Filter by role (user, admin, superadmin)
+# - Search by name or email
+# - Combined filters
+# - Invalid role handling
 ```
 
 See `test/README.md` for detailed testing information.
+
+## 📸 Photo Upload Features
+
+### Supported Upload Types
+- **Product Photos**: Multiple photos per product (max 5)
+- **Order Photos**: Multiple photos per order (max 5)
+- **Category Images**: Single image per category
+- **User Profile Photos**: Single photo per user
+
+### Cloudinary Integration
+- **Automatic Upload**: Files are automatically uploaded to Cloudinary
+- **URL Generation**: Cloudinary URLs are returned in API responses
+- **Public ID Storage**: Public IDs are stored for future management
+- **File Cleanup**: Temporary files are automatically deleted after upload
+
+### Upload Endpoints
+```bash
+# Product photos
+POST /products (multipart/form-data)
+- photos: files (max 5)
+
+# Order photos  
+POST /orders (multipart/form-data)
+- photos: files (max 5)
+
+# Category images
+POST /categories (multipart/form-data)
+- image: file (max 1)
+
+# User profile photos
+POST /users/auth/register (multipart/form-data)
+PUT /users/profile (multipart/form-data)
+- photo: file (max 1)
+```
 
 ## 🔒 Security Features
 
@@ -729,6 +1146,8 @@ See `test/README.md` for detailed testing information.
 - **JWT Authentication**: Secure token-based authentication with 1-day expiry
 - **Input Validation**: Comprehensive validation for all endpoints
 - **Password Hashing**: Secure bcrypt password hashing
+- **File Upload Security**: Multer middleware with file type validation
+- **Cloudinary Security**: Secure API key management for image uploads
 
 ## 🔧 Environment Variables
 
@@ -777,6 +1196,37 @@ This project is licensed under the ISC License.
 If you encounter any issues or have questions, please create an issue in the repository or contact the development team.
 
 ---
+
+## 🆕 Recent Updates
+
+### New Features Added
+- **Photo Upload Support**: Added photo upload functionality for products and orders
+- **User Role Filtering**: Added role-based filtering and search for user management
+- **Enhanced API Responses**: Updated all responses to include photo URLs and filtering information
+- **Comprehensive Testing**: Added test scripts for all new features
+- **Improved Documentation**: Updated README with detailed examples and usage instructions
+
+### Photo Upload Capabilities
+- ✅ Product photos (multiple, max 5)
+- ✅ Order photos (multiple, max 5) 
+- ✅ Category images (single)
+- ✅ User profile photos (single)
+- ✅ Cloudinary integration with automatic URL generation
+- ✅ Public ID storage for future management
+
+### Filtering & Search Features
+- ✅ Product filtering by category, price, search, and sorting
+- ✅ User filtering by role and search (Admin only)
+- ✅ Order filtering by status and date range (Admin only)
+- ✅ Combined filter support
+- ✅ Pagination for all filtered results
+
+### Testing Coverage
+- ✅ Product photo upload testing
+- ✅ Order photo upload testing  
+- ✅ User role filtering testing
+- ✅ Comprehensive cURL examples
+- ✅ JavaScript/Fetch examples
 
 **Happy Coding! 🎉**
 ````
