@@ -15,6 +15,8 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
   - [User Management Endpoints](#user-management-endpoints)
     - [Update Profile](#update-profile)
     - [Get All Users (Admin)](#get-all-users-admin)
+    - [Create User (Admin)](#create-user-admin)
+    - [Update User (Admin)](#update-user-admin)
     - [Delete User (Admin)](#delete-user-admin)
     - [Create Admin (Super Admin)](#create-admin-super-admin)
     - [Setup Super Admin](#setup-super-admin)
@@ -67,7 +69,8 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
 - **Pagination**: Built-in pagination for all list endpoints
 - **Search & Filtering**: Advanced product search and filtering, user role filtering
 - **Photo Upload Support**: Multiple photo uploads for products and orders
-- **User Management**: Role-based user filtering and search functionality
+- **User Management**: Complete user CRUD operations with role-based permissions
+- **Role-Based Access Control**: Granular permissions for user, admin, and super admin roles
 
 ## 📋 Prerequisites
 
@@ -256,12 +259,14 @@ Authorization: Bearer <admin_access_token>
 ```
 
 Query Parameters:
+
 - `page`: Page number (default: 1)
 - `limit`: Items per page (default: 10)
 - `role`: Filter by role (`user`, `admin`, `superadmin`)
 - `search`: Search in name and email (case-insensitive)
 
 Response:
+
 ```json
 {
   "statusCode": 200,
@@ -300,12 +305,128 @@ Response:
 }
 ```
 
+#### Create User (Admin)
+
+````http
+POST /users
+Authorization: Bearer <admin_access_token>
+Content-Type: multipart/form-data
+
+Body:
+- name: string (required)
+- email: string (required)
+- password: string (required)
+- role: string (optional, default: 'user')
+- photo: file (optional)
+- address: object (optional)
+  - street: string (optional)
+  - city: string (optional)
+  - state: string (optional)
+  - zipCode: string (optional)
+  - country: string (optional)
+
+Response:
+```json
+{
+  "statusCode": 201,
+  "data": {
+    "_id": "user_id",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "user",
+    "photo": "https://res.cloudinary.com/example/image/upload/v1234567890/profile.jpg",
+    "address": {
+      "street": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10001",
+      "country": "USA"
+    },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "message": "User created successfully as user",
+  "success": true
+}
+````
+
+**Role Permissions:**
+
+- **Admin**: Can only create regular users (role: "user")
+- **Super Admin**: Can create users and admins (role: "user" or "admin")
+
+#### Update User (Admin)
+
+````http
+PUT /users/:id
+Authorization: Bearer <admin_access_token>
+Content-Type: multipart/form-data
+
+Body:
+- name: string (optional)
+- email: string (optional)
+- role: string (optional)
+- photo: file (optional)
+- address: object (optional)
+  - street: string (optional)
+  - city: string (optional)
+  - state: string (optional)
+  - zipCode: string (optional)
+  - country: string (optional)
+
+Response:
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "_id": "user_id",
+    "name": "Updated Name",
+    "email": "updated@example.com",
+    "role": "user",
+    "photo": "https://res.cloudinary.com/example/image/upload/v1234567890/new_profile.jpg",
+    "address": {
+      "street": "456 Oak St",
+      "city": "Los Angeles",
+      "state": "CA",
+      "zipCode": "90210",
+      "country": "USA"
+    },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "message": "User updated successfully",
+  "success": true
+}
+````
+
+**Role Permissions:**
+
+- **Admin**: Can only update regular users, cannot change roles to admin/super admin
+- **Super Admin**: Can update users and admins, cannot change roles to super admin
+
 #### Delete User (Admin)
 
 ```http
 DELETE /users/:id
 Authorization: Bearer <admin_access_token>
 ```
+
+Response:
+
+```json
+{
+  "statusCode": 200,
+  "data": null,
+  "message": "User deleted successfully",
+  "success": true
+}
+```
+
+**Role Permissions:**
+
+- **Admin**: Can only delete regular users
+- **Super Admin**: Can delete users and admins
+- **Security**: Cannot delete own account, cannot delete other super admins
 
 #### Create Admin (Super Admin)
 
@@ -743,6 +864,36 @@ curl -X GET "http://localhost:8000/api/v1/users?page=1&limit=10&role=user&search
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
+#### Create a user (Admin):
+
+```bash
+curl -X POST http://localhost:8000/api/v1/users \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "name=John Doe" \
+  -F "email=john@example.com" \
+  -F "password=password123" \
+  -F "role=user" \
+  -F "photo=@/path/to/profile.jpg"
+```
+
+#### Update a user (Admin):
+
+```bash
+curl -X PUT http://localhost:8000/api/v1/users/USER_ID \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "name=Updated Name" \
+  -F "email=updated@example.com" \
+  -F "role=user" \
+  -F "photo=@/path/to/new_profile.jpg"
+```
+
+#### Delete a user (Admin):
+
+```bash
+curl -X DELETE http://localhost:8000/api/v1/users/USER_ID \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
 #### Create a category (Admin):
 
 ```bash
@@ -786,15 +937,35 @@ console.log(productsData);
 ### User Roles:
 
 - **user**: Can browse products, create orders, write reviews (if purchased)
-- **admin**: Can manage products, categories, orders, and users
+- **admin**: Can manage products, categories, orders, and users (limited permissions)
 - **superadmin**: Can create/delete admins and manage all resources
 
 ### Access Levels:
 
 - **Public**: Register, login, view products, view categories
 - **User**: Profile management, order creation, reviews
-- **Admin**: Product CRUD, category CRUD, order management, user management
-- **Super Admin**: Admin creation, full system access
+- **Admin**: Product CRUD, category CRUD, order management, user management (users only)
+- **Super Admin**: Admin creation, full system access, complete user management
+
+### User Management Permissions:
+
+#### Admin Permissions:
+- ✅ Create regular users (role: "user")
+- ✅ Update regular users
+- ✅ Delete regular users
+- ✅ View all users with filtering
+- ❌ Cannot create/update/delete other admins
+- ❌ Cannot create/update/delete super admins
+- ❌ Cannot change user roles to admin or super admin
+
+#### Super Admin Permissions:
+- ✅ Create users and admins
+- ✅ Update users and admins
+- ✅ Delete users and admins
+- ✅ View all users with filtering
+- ❌ Cannot create/update/delete other super admins
+- ❌ Cannot change any user role to super admin
+- ❌ Cannot delete their own account
 
 ## 📁 Project Structure
 
@@ -1069,6 +1240,9 @@ node test/test-order-photo-upload.js
 
 # Test user role filtering functionality
 node test/test-user-role-filtering.js
+
+# Test user management functionality
+node test/test-user-management.js
 ```
 
 ### Testing New Features
@@ -1103,6 +1277,21 @@ node test/test-user-role-filtering.js
 # - Invalid role handling
 ```
 
+#### User Management Testing
+```bash
+# Test user management functionality
+node test/test-user-management.js
+
+# Test cases include:
+# - Admin creating users
+# - Admin updating users
+# - Admin deleting users
+# - Permission restrictions (admin cannot manage other admins)
+# - Super admin creating admins
+# - Role validation and security checks
+# - Self-deletion prevention
+```
+
 See `test/README.md` for detailed testing information.
 
 ## 📸 Photo Upload Features
@@ -1125,7 +1314,7 @@ See `test/README.md` for detailed testing information.
 POST /products (multipart/form-data)
 - photos: files (max 5)
 
-# Order photos  
+# Order photos
 POST /orders (multipart/form-data)
 - photos: files (max 5)
 
@@ -1202,13 +1391,14 @@ If you encounter any issues or have questions, please create an issue in the rep
 ### New Features Added
 - **Photo Upload Support**: Added photo upload functionality for products and orders
 - **User Role Filtering**: Added role-based filtering and search for user management
+- **User Management System**: Complete CRUD operations for user management with role-based permissions
 - **Enhanced API Responses**: Updated all responses to include photo URLs and filtering information
 - **Comprehensive Testing**: Added test scripts for all new features
 - **Improved Documentation**: Updated README with detailed examples and usage instructions
 
 ### Photo Upload Capabilities
 - ✅ Product photos (multiple, max 5)
-- ✅ Order photos (multiple, max 5) 
+- ✅ Order photos (multiple, max 5)
 - ✅ Category images (single)
 - ✅ User profile photos (single)
 - ✅ Cloudinary integration with automatic URL generation
@@ -1221,10 +1411,20 @@ If you encounter any issues or have questions, please create an issue in the rep
 - ✅ Combined filter support
 - ✅ Pagination for all filtered results
 
+### User Management Capabilities
+- ✅ Create users (Admin/Super Admin)
+- ✅ Update users (Admin/Super Admin)
+- ✅ Delete users (Admin/Super Admin)
+- ✅ Role-based permission validation
+- ✅ Photo upload support for user profiles
+- ✅ Self-deletion prevention
+- ✅ Super admin role protection
+
 ### Testing Coverage
 - ✅ Product photo upload testing
-- ✅ Order photo upload testing  
+- ✅ Order photo upload testing
 - ✅ User role filtering testing
+- ✅ User management testing
 - ✅ Comprehensive cURL examples
 - ✅ JavaScript/Fetch examples
 

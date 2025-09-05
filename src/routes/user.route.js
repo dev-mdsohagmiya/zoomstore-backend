@@ -5,6 +5,8 @@ import {
   registerUser,
   updateUserProfile,
   getAllUsers,
+  createUser,
+  updateUser,
   deleteUser,
   createAdmin,
   createSuperAdminFromEnv,
@@ -46,6 +48,28 @@ userRouter.route("/users/profile").put(
 
 // Admin routes
 userRouter.route("/users").get(verifyJWT, verifyAdmin, getAllUsers);
+userRouter.route("/users").post(
+  verifyJWT,
+  verifyAdmin,
+  upload.fields([
+    {
+      name: "photo",
+      maxCount: 1,
+    },
+  ]),
+  createUser
+);
+userRouter.route("/users/:id").put(
+  verifyJWT,
+  verifyAdmin,
+  upload.fields([
+    {
+      name: "photo",
+      maxCount: 1,
+    },
+  ]),
+  updateUser
+);
 userRouter.route("/users/:id").delete(verifyJWT, verifyAdmin, deleteUser);
 
 // Super admin routes

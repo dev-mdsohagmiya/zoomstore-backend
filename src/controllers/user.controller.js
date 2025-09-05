@@ -253,11 +253,29 @@ const deleteUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const currentUser = req.user;
 
-  // Super admin can delete anyone, admin can delete users but not other admins
+  const targetUser = await User.findById(id);
+  if (!targetUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Prevent self-deletion
+  if (targetUser._id.toString() === currentUser._id.toString()) {
+    throw new ApiError(403, "Cannot delete your own account");
+  }
+
+  // Role-based permission checks
   if (currentUser.role === "admin") {
-    const targetUser = await User.findById(id);
-    if (targetUser && targetUser.role === "admin") {
-      throw new ApiError(403, "Admin cannot delete other admins");
+    // Admin can only delete regular users, not other admins or super admins
+    if (targetUser.role === "admin" || targetUser.role === "superadmin") {
+      throw new ApiError(
+        403,
+        "Admin can only delete regular users. Cannot delete other admins or super admins."
+      );
+    }
+  } else if (currentUser.role === "superadmin") {
+    // Super admin can delete users and admins, but not other super admins
+    if (targetUser.role === "superadmin") {
+      throw new ApiError(403, "Super admin cannot delete other super admins.");
     }
   }
 
@@ -336,6 +354,155 @@ const createAdmin = asyncHandler(async (req, res) => {
     );
 });
 
+const createUser = asyncHandler(async (req, res) => {
+  const { name, email, password, role, address } = req.body || {};
+  const currentUser = req.user;
+
+  if (!name || !email || !password) {
+    throw new ApiError(400, "Name, email and password are required");
+  }
+
+  if ([name, email, password].some((field) => field?.trim() === "")) {
+    throw new ApiError(400, "Name, email and password are required");
+  }
+
+  // Role validation based on current user's role
+  if (currentUser.role === "admin") {
+    // Admin can only create users, not other admins or super admins
+    if (role === "admin" || role === "superadmin") {
+      throw new ApiError(
+        403,
+        "Admin can only create regular users. Only super admin can create admins."
+      );
+    }
+  } else if (currentUser.role === "superadmin") {
+    // Super admin can create users and admins, but not other super admins
+    if (role === "superadmin") {
+      throw new ApiError(
+        403,
+        "Super admin role can only be created from environment variables."
+      );
+    }
+  }
+
+  const existedUser = await User.findOne({ email });
+
+  if (existedUser) {
+    throw new ApiError(409, "User with email already exists");
+  }
+
+  let photo = "";
+  if (req?.files?.photo && req.files.photo.length > 0) {
+    const photoLocalPath = req.files.photo[0].path;
+    const uploadedPhoto = await uploadOnCloudinary(photoLocalPath);
+    if (uploadedPhoto) {
+      photo = uploadedPhoto.url;
+    }
+  }
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+    photo,
+    role: role || "user",
+    address: address || {},
+  });
+
+  const createdUser = await User.findById(user._id).select("-password");
+
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong when creating the user");
+  }
+
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        createdUser,
+        `User created successfully as ${createdUser.role}`
+      )
+    );
+});
+
+const updateUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, email, role, address } = req.body || {};
+  const currentUser = req.user;
+
+  if (!name || !email) {
+    throw new ApiError(400, "Name and email are required");
+  }
+
+  const userToUpdate = await User.findById(id);
+  if (!userToUpdate) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Role-based permission checks
+  if (currentUser.role === "admin") {
+    // Admin can only update regular users, not other admins or super admins
+    if (userToUpdate.role === "admin" || userToUpdate.role === "superadmin") {
+      throw new ApiError(
+        403,
+        "Admin can only update regular users. Cannot update other admins or super admins."
+      );
+    }
+    // Admin cannot change user role to admin or super admin
+    if (role === "admin" || role === "superadmin") {
+      throw new ApiError(
+        403,
+        "Admin cannot change user role to admin or super admin."
+      );
+    }
+  } else if (currentUser.role === "superadmin") {
+    // Super admin can update users and admins, but not other super admins
+    if (
+      userToUpdate.role === "superadmin" &&
+      userToUpdate._id.toString() !== currentUser._id.toString()
+    ) {
+      throw new ApiError(403, "Super admin cannot update other super admins.");
+    }
+    // Super admin cannot change any user role to super admin
+    if (role === "superadmin") {
+      throw new ApiError(
+        403,
+        "Super admin role can only be created from environment variables."
+      );
+    }
+  }
+
+  let photo = userToUpdate.photo;
+  if (req?.files?.photo && req.files.photo.length > 0) {
+    const photoLocalPath = req.files.photo[0].path;
+    const uploadedPhoto = await uploadOnCloudinary(photoLocalPath);
+    if (uploadedPhoto) {
+      photo = uploadedPhoto.url;
+    }
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    id,
+    {
+      name,
+      email,
+      photo,
+      ...(role && { role }),
+      ...(address && { address }),
+    },
+    { new: true, select: "-password" }
+  );
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedUser, "User updated successfully"));
+});
+
 const createSuperAdminFromEnv = asyncHandler(async (req, res) => {
   const { email, password } = {
     email: process.env.SUPER_ADMIN_EMAIL,
@@ -404,6 +571,8 @@ export {
   logoutUserController,
   updateUserProfile,
   getAllUsers,
+  createUser,
+  updateUser,
   deleteUser,
   createAdmin,
   createSuperAdminFromEnv,
