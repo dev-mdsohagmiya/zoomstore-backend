@@ -66,6 +66,18 @@ const productSchema = new Schema(
       min: 0,
       max: 5,
     },
+    sizes: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    colors: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
   },
   {
     timestamps: true,

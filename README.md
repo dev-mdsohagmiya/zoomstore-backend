@@ -60,7 +60,7 @@ A comprehensive e-commerce backend built with Node.js, Express, and MongoDB wher
 
 - **Role-based Authentication**: User, Admin, and Super Admin roles
 - **JWT Authentication**: Secure token-based authentication
-- **Product Management**: Admin-only product CRUD operations with photo uploads
+- **Product Management**: Admin-only product CRUD operations with photo uploads, sizes, and colors
 - **Category Management**: Admin-only category management with automatic product relationships
 - **Order Management**: Complete order lifecycle with status tracking and photo uploads
 - **Review System**: Purchase-verified product reviews
@@ -582,6 +582,8 @@ Body:
 - stock: number (optional, default: 0)
 - categories: array of category IDs (optional)
 - photos: files (optional, max 5)
+- sizes: array of strings or comma-separated string (optional)
+- colors: array of strings or comma-separated string (optional)
 
 Response:
 ```json
@@ -601,6 +603,8 @@ Response:
       "https://res.cloudinary.com/example/image/upload/v1234567890/laptop1.jpg",
       "https://res.cloudinary.com/example/image/upload/v1234567890/laptop2.jpg"
     ],
+    "sizes": ["13 inch", "15 inch", "17 inch"],
+    "colors": ["Black", "Silver", "Space Gray"],
     "categories": [
       {
         "_id": "category_id",
@@ -627,6 +631,8 @@ Authorization: Bearer <admin_access_token>
 Content-Type: multipart/form-data
 
 Body: (same as create, all fields optional)
+- sizes: array of strings or comma-separated string (optional)
+- colors: array of strings or comma-separated string (optional)
 ```
 
 #### Delete Product (Admin)
@@ -818,9 +824,10 @@ curl -X POST http://localhost:8000/api/v1/users/auth/login \
 curl -X GET http://localhost:8000/api/v1/products
 ```
 
-#### Create a product with photos (Admin):
+#### Create a product with photos, sizes, and colors (Admin):
 
 ```bash
+# JSON array format
 curl -X POST http://localhost:8000/api/v1/products \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -F "name=Gaming Laptop" \
@@ -830,7 +837,22 @@ curl -X POST http://localhost:8000/api/v1/products \
   -F "stock=50" \
   -F "categories=[\"category_id\"]" \
   -F "photos=@/path/to/image1.jpg" \
-  -F "photos=@/path/to/image2.jpg"
+  -F "photos=@/path/to/image2.jpg" \
+  -F "sizes=[\"13 inch\", \"15 inch\", \"17 inch\"]" \
+  -F "colors=[\"Black\", \"Silver\", \"Space Gray\"]"
+
+# Comma-separated format
+curl -X POST http://localhost:8000/api/v1/products \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "name=Gaming Mouse" \
+  -F "description=High-precision gaming mouse" \
+  -F "price=99.99" \
+  -F "discount=5" \
+  -F "stock=100" \
+  -F "categories=[\"category_id\"]" \
+  -F "photos=@/path/to/mouse.jpg" \
+  -F "sizes=Small, Medium, Large" \
+  -F "colors=Black, White, Red, Blue"
 ```
 
 #### Create an order with photos:
@@ -1243,6 +1265,9 @@ node test/test-user-role-filtering.js
 
 # Test user management functionality
 node test/test-user-management.js
+
+# Test product size and color functionality
+node test/test-product-size-color.js
 ```
 
 ### Testing New Features
@@ -1292,7 +1317,42 @@ node test/test-user-management.js
 # - Self-deletion prevention
 ```
 
+#### Product Size and Color Testing
+```bash
+# Test product size and color functionality
+node test/test-product-size-color.js
+
+# Test cases include:
+# - Product creation with JSON array format for sizes/colors
+# - Product creation with comma-separated format for sizes/colors
+# - Product update with new sizes and colors
+# - Product retrieval to verify data persistence
+# - Flexible input parsing validation
+# - Both create and update operations
+```
+
 See `test/README.md` for detailed testing information.
+
+## 📦 Product Size and Color Features
+
+### Size and Color Management
+- **Multiple Sizes**: Products can have multiple size options
+- **Multiple Colors**: Products can have multiple color variants
+- **Flexible Input**: Supports both JSON arrays and comma-separated strings
+- **Data Validation**: Automatic trimming and filtering of empty values
+- **Backward Compatibility**: Existing products without sizes/colors have empty arrays
+
+### Input Format Support
+- **JSON Array Format**: `["Small", "Medium", "Large"]`
+- **Comma-Separated Format**: `"Small, Medium, Large"`
+- **Automatic Parsing**: Handles both formats seamlessly
+- **Error Handling**: Graceful fallback for invalid input
+
+### API Integration
+- **Create Product**: Include sizes and colors in product creation
+- **Update Product**: Modify sizes and colors in product updates
+- **Retrieve Product**: Sizes and colors included in product responses
+- **Search & Filter**: Can be used for advanced product filtering
 
 ## 📸 Photo Upload Features
 
@@ -1392,6 +1452,7 @@ If you encounter any issues or have questions, please create an issue in the rep
 - **Photo Upload Support**: Added photo upload functionality for products and orders
 - **User Role Filtering**: Added role-based filtering and search for user management
 - **User Management System**: Complete CRUD operations for user management with role-based permissions
+- **Product Size and Color**: Added size and color properties to products with flexible input formats
 - **Enhanced API Responses**: Updated all responses to include photo URLs and filtering information
 - **Comprehensive Testing**: Added test scripts for all new features
 - **Improved Documentation**: Updated README with detailed examples and usage instructions
@@ -1420,11 +1481,21 @@ If you encounter any issues or have questions, please create an issue in the rep
 - ✅ Self-deletion prevention
 - ✅ Super admin role protection
 
+### Product Size and Color Capabilities
+- ✅ Multiple sizes per product
+- ✅ Multiple colors per product
+- ✅ JSON array input format support
+- ✅ Comma-separated string input format support
+- ✅ Automatic data validation and trimming
+- ✅ Backward compatibility with existing products
+- ✅ Create and update operations support
+
 ### Testing Coverage
 - ✅ Product photo upload testing
 - ✅ Order photo upload testing
 - ✅ User role filtering testing
 - ✅ User management testing
+- ✅ Product size and color testing
 - ✅ Comprehensive cURL examples
 - ✅ JavaScript/Fetch examples
 

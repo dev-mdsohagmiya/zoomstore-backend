@@ -97,7 +97,16 @@ const getProductById = asyncHandler(async (req, res) => {
 });
 
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, price, discount, stock, categories } = req.body;
+  const {
+    name,
+    description,
+    price,
+    discount,
+    stock,
+    categories,
+    sizes,
+    colors,
+  } = req.body;
 
   if (!name || !description || !price) {
     throw new ApiError(400, "Name, description and price are required");
@@ -128,6 +137,34 @@ const createProduct = asyncHandler(async (req, res) => {
     categoryIds = categoryIds.map((cat) => cat._id);
   }
 
+  // Parse sizes and colors from string arrays
+  let parsedSizes = [];
+  let parsedColors = [];
+
+  if (sizes) {
+    try {
+      parsedSizes = typeof sizes === "string" ? JSON.parse(sizes) : sizes;
+    } catch (error) {
+      // If JSON parsing fails, treat as comma-separated string
+      parsedSizes = sizes
+        .split(",")
+        .map((size) => size.trim())
+        .filter((size) => size);
+    }
+  }
+
+  if (colors) {
+    try {
+      parsedColors = typeof colors === "string" ? JSON.parse(colors) : colors;
+    } catch (error) {
+      // If JSON parsing fails, treat as comma-separated string
+      parsedColors = colors
+        .split(",")
+        .map((color) => color.trim())
+        .filter((color) => color);
+    }
+  }
+
   const product = await Product.create({
     name,
     slug,
@@ -137,6 +174,8 @@ const createProduct = asyncHandler(async (req, res) => {
     stock: stock ? parseInt(stock) : 0,
     categories: categoryIds,
     photos,
+    sizes: parsedSizes,
+    colors: parsedColors,
   });
 
   // Update categories to include this product
@@ -159,8 +198,17 @@ const createProduct = asyncHandler(async (req, res) => {
 
 const updateProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, description, price, discount, stock, categories, status } =
-    req.body;
+  const {
+    name,
+    description,
+    price,
+    discount,
+    stock,
+    categories,
+    status,
+    sizes,
+    colors,
+  } = req.body;
 
   const product = await Product.findById(id);
   if (!product) {
@@ -181,6 +229,35 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (discount !== undefined) updateData.discount = parseFloat(discount);
   if (stock !== undefined) updateData.stock = parseInt(stock);
   if (status) updateData.status = status;
+
+  // Handle sizes and colors
+  if (sizes !== undefined) {
+    let parsedSizes = [];
+    try {
+      parsedSizes = typeof sizes === "string" ? JSON.parse(sizes) : sizes;
+    } catch (error) {
+      // If JSON parsing fails, treat as comma-separated string
+      parsedSizes = sizes
+        .split(",")
+        .map((size) => size.trim())
+        .filter((size) => size);
+    }
+    updateData.sizes = parsedSizes;
+  }
+
+  if (colors !== undefined) {
+    let parsedColors = [];
+    try {
+      parsedColors = typeof colors === "string" ? JSON.parse(colors) : colors;
+    } catch (error) {
+      // If JSON parsing fails, treat as comma-separated string
+      parsedColors = colors
+        .split(",")
+        .map((color) => color.trim())
+        .filter((color) => color);
+    }
+    updateData.colors = parsedColors;
+  }
 
   // Handle photo uploads
   if (req.files && req.files.length > 0) {
