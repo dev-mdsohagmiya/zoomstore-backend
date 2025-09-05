@@ -6,15 +6,21 @@ dotenv.config({
   path: "./.env",
 });
 
-connectDB()
-  .then(() => {
-    app.listen(process.env.PORT || 8000, () => {
-      console.log("Server is running at PORT:", process.env.PORT || 8000);
+// Export the app for Vercel
+export default app;
+
+// Start server only if not in Vercel environment
+if (process.env.NODE_ENV !== "production" || process.env.VERCEL !== "1") {
+  connectDB()
+    .then(() => {
+      app.listen(process.env.PORT || 8000, () => {
+        console.log("Server is running at PORT:", process.env.PORT || 8000);
+      });
+    })
+    .catch((error) => {
+      console.log("MONGODB connection failed  | ", error);
     });
-  })
-  .catch((error) => {
-    console.log("MONGODB connection failed  | ", error);
-  });
+}
 
 // const app = express()(async () => {
 //   try {
