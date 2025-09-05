@@ -25,6 +25,9 @@ import { cartRouter } from "./routes/cart.route.js";
 import { paymentRouter } from "./routes/payment.route.js";
 
 //routes declaration
+app.get("/", (req, res) => {
+  res.send("server is running");
+});
 app.use("/api/v1/", userRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/products", productRouter);
