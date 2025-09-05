@@ -269,7 +269,13 @@ const getOrderStatus = asyncHandler(async (req, res) => {
 });
 
 const createOrderWithPayment = asyncHandler(async (req, res) => {
-  const { items, shippingAddress, paymentMethod = "card" } = req.body;
+  const {
+    items,
+    shippingAddress,
+    paymentType = "card",
+    cardDetails,
+  } = req.body;
+
   const userId = req.user._id;
 
   if (!items || items.length === 0) {
@@ -339,7 +345,7 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
     shippingPrice,
     taxPrice,
     totalPrice,
-    paymentMethod,
+    paymentMethod: paymentType, // Store payment method in order
     photos: uploadedPhotos,
     status: "pending",
   });
@@ -349,67 +355,89 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
     .populate("user", "name email")
     .populate("items.product", "name photos");
 
-  // Create payment intent
-  try {
-    const amountInCents = Math.round(totalPrice * 100);
-
-    // Check minimum amount
-    if (amountInCents < 50) {
-      throw new ApiError(400, "Minimum payment amount is $0.50");
-    }
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInCents,
-      currency: "usd",
-      metadata: {
-        orderId: order._id.toString(),
-        userId: userId.toString(),
-        userEmail: populatedOrder.user.email,
-      },
-      description: `Payment for Order #${order.orderNumber || order._id}`,
-      automatic_payment_methods: { enabled: true },
-    });
-
-    // Create payment record
-    const payment = await Payment.create({
-      user: userId,
-      order: order._id,
-      stripePaymentIntentId: paymentIntent.id,
-      stripeClientSecret: paymentIntent.client_secret,
-      amount: totalPrice,
-      currency: "usd",
-      status: "pending",
-      paymentMethod: paymentMethod,
-      description: `Payment for Order #${order.orderNumber || order._id}`,
-      metadata: {
-        orderNumber: order.orderNumber || order._id,
-        userEmail: populatedOrder.user.email,
-        userName: populatedOrder.user.name,
-      },
-    });
-
-    return res.status(201).json(
-      new ApiResponse(
-        201,
-        {
-          order: populatedOrder,
-          payment: {
-            paymentId: payment._id,
-            clientSecret: paymentIntent.client_secret,
-            amount: totalPrice,
-            currency: "usd",
-            status: "pending",
-            stripePaymentIntentId: paymentIntent.id,
-          },
+  // Process payment based on type
+  if (paymentType === "card") {
+    try {
+      // Create Stripe payment method
+      const paymentMethod = await stripe.paymentMethods.create({
+        type: 'card',
+        card: {
+          number: cardDetails.number,
+          exp_month: cardDetails.expMonth,
+          exp_year: cardDetails.expYear,
+          cvc: cardDetails.cvc,
         },
-        "Order created successfully with payment intent"
-      )
-    );
-  } catch (error) {
-    // If payment creation fails, delete the order
-    await Order.findByIdAndDelete(order._id);
-    throw new ApiError(500, `Payment creation failed: ${error.message}`);
+        billing_details: {
+          name: cardDetails.name,
+          email: cardDetails.email,
+        },
+      });
+
+      // Create payment intent with specific payment method types
+      const amountInCents = Math.round(totalPrice * 100);
+      if (amountInCents < 50) {
+        throw new ApiError(400, "Minimum payment amount is $0.50");
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountInCents,
+        currency: "usd",
+        payment_method: paymentMethod.id,
+        confirm: true,
+        payment_method_types: ['card'],
+        metadata: {
+          orderId: order._id.toString(),
+          userId: userId.toString(),
+          userEmail: populatedOrder.user.email,
+        },
+        description: `Payment for Order #${order.orderNumber || order._id}`,
+      });
+
+      // Create payment record
+      const payment = await Payment.create({
+        user: userId,
+        order: order._id,
+        stripePaymentIntentId: paymentIntent.id,
+        stripeClientSecret: paymentIntent.client_secret,
+        amount: totalPrice,
+        currency: "usd",
+        status: "pending",
+        paymentMethod: paymentType,
+        description: `Payment for Order #${order.orderNumber || order._id}`,
+        metadata: {
+          orderNumber: order.orderNumber || order._id,
+          userEmail: populatedOrder.user.email,
+          userName: populatedOrder.user.name,
+        },
+      });
+
+      return res.status(201).json(
+        new ApiResponse(
+          201,
+          {
+            order: populatedOrder,
+            payment: {
+              paymentId: payment._id,
+              clientSecret: paymentIntent.client_secret,
+              amount: totalPrice,
+              currency: "usd",
+              status: "pending",
+              stripePaymentIntentId: paymentIntent.id,
+            },
+          },
+          "Order created successfully with payment intent"
+        )
+      );
+    } catch (error) {
+      // Delete order if payment fails
+      await Order.findByIdAndDelete(order._id);
+      throw new ApiError(500, `Payment processing failed: ${error.message}`);
+    }
   }
+
+  // If paymentType is not "card", you might want to handle other payment methods here
+  // For now, we'll return an error or a generic success message
+  throw new ApiError(400, "Unsupported payment method");
 });
 
 export {
