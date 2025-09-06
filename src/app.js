@@ -23,11 +23,15 @@ import productRouter from "./routes/product.route.js";
 import orderRouter from "./routes/order.route.js";
 import { cartRouter } from "./routes/cart.route.js";
 import { paymentRouter } from "./routes/payment.route.js";
+import connectDB from "./db/index.js";
 
 //routes declaration
-app.get("/", (req, res) => {
-  res.send("server is running");
+
+app.get("/", async (req, res) => {
+  await connectDB();
+  res.send("db connected");
 });
+
 app.use("/api/v1/", userRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/products", productRouter);
