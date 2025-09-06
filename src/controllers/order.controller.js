@@ -437,6 +437,7 @@ const createOrderWithPayment = asyncHandler(async (req, res) => {
         },
         stripeClientSecret: paymentIntent.client_secret,
         stripePaymentMethodId: paymentMethod.id,
+        stripePaymentIntentId: paymentIntent.id, // Add the payment intent ID
         amount: totalPrice,
         currency: "usd",
         status: paymentIntent.status,

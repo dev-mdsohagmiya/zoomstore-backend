@@ -87,6 +87,12 @@ const paymentSchema = new mongoose.Schema(
     stripePaymentMethodId: {
       type: String,
       required: false,
+      sparse: true, // Allows multiple null values
+    },
+    stripePaymentIntentId: {
+      type: String,
+      required: false,
+      sparse: true, // Allows multiple null values
     },
     paymentMethodDetails: {
       type: {
