@@ -12,11 +12,9 @@
       "dest": "src/index.js"
     }
   ],
-  "env": {
-    "NODE_ENV": "production",
-    "MONGODB_URI": "mongodb+srv://miyamdsohag:test@cluster0.wejxhce.mongodb.net",
-    "JWT_SECRET": "your-super-secret-jwt-key",
-    "STRIPE_SECRET_KEY": "sk_test_BQokikJOvBiI2HlWgH4olfQ2",
-    "STRIPE_PUBLISHABLE_KEY": "pk_test_TYooMQauvdEDq54NiTphI7jx"
+  "functions": {
+    "src/index.js": {
+      "maxDuration": 30
+    }
   }
 }
