@@ -3,12 +3,19 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { safeDbOperation } from "../utils/dbHelper.js";
 import jwt from "jsonwebtoken";
 const generateAccessToken = async (userId) => {
   try {
-    const user = await User.findById(userId);
-    const accessToken = user.generateAccessToken();
+    const user = await safeDbOperation(async () => {
+      return await User.findById(userId);
+    });
 
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    const accessToken = user.generateAccessToken();
     return { accessToken };
   } catch (error) {
     console.log(error);
@@ -38,7 +45,9 @@ const registerUser = asyncHandler(async (req, res) => {
     );
   }
 
-  const existedUser = await User.findOne({ email });
+  const existedUser = await safeDbOperation(async () => {
+    return await User.findOne({ email });
+  });
 
   if (existedUser) {
     throw new ApiError(409, "User with email already exists");
